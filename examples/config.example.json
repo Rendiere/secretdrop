@@ -1,0 +1,14 @@
+{
+  "bind": "tailscale",
+  "port": 7391,
+  "state_path": "~/.local/state/secretdrop/pending.json",
+  "allowlist": [
+    "~/.openclaw/credentials/*",
+    "~/.openclaw/workspace-*/.secrets.env"
+  ],
+  "default_ttl_seconds": 1800,
+  "callback_command": "~/.config/secretdrop/openclaw-wake.sh",
+  "callback_url": null,
+  "callback_timeout_seconds": 20,
+  "allow_unspecified_bind": false
+}

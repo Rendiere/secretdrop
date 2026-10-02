@@ -1,0 +1,163 @@
+"""Command line: make a link, serve them, list them, kill them."""
+
+from __future__ import annotations
+
+import argparse
+import datetime as _dt
+import json
+import logging
+import re
+import sys
+
+from . import __version__
+from .config import Config, ConfigError, load
+from .config import clamp_ttl
+from .paths import PathRejected, check_text, resolve_destination
+from .server import serve
+from .store import Store
+from .writer import validate_mode
+
+DURATION = re.compile(r"^(\d+)\s*([smhd])$")
+DURATION_UNITS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+
+
+def parse_duration(text: str) -> int:
+    """`30m`, `2h`, `45s`, `1d`, or a bare number of seconds."""
+    text = text.strip().lower()
+    if text.isdigit():
+        return int(text)
+    match = DURATION.match(text)
+    if not match:
+        raise argparse.ArgumentTypeError(f"cannot read '{text}' as a duration (try 30m, 2h, 1d)")
+    return int(match.group(1)) * DURATION_UNITS[match.group(2)]
+
+
+def cmd_link(args, cfg: Config) -> int:
+    try:
+        validate_mode(args.mode, args.key)
+    except ValueError as exc:
+        print(f"secretdrop: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        check_text(args.label, "label")
+        dest = resolve_destination(args.dest, cfg.allowlist)
+    except PathRejected as exc:
+        print(f"secretdrop: {exc}", file=sys.stderr)
+        return 2
+
+    try:
+        ttl = clamp_ttl(args.ttl if args.ttl is not None else cfg.default_ttl_seconds)
+    except ConfigError as exc:
+        print(f"secretdrop: {exc}", file=sys.stderr)
+        return 2
+    req = Store(cfg.state_path).create(
+        dest=str(dest), label=args.label, mode=args.mode, key=args.key, ttl_seconds=ttl
+    )
+    url = cfg.url_for(req.id)
+
+    if args.json:
+        print(json.dumps({"id": req.id, "url": url, "dest": str(dest), "expires_at": req.expires_at}))
+    else:
+        print(url)
+    return 0
+
+
+def cmd_serve(args, cfg: Config) -> int:
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+    )
+    if not cfg.allowlist:
+        logging.getLogger("secretdrop").warning(
+            "allowlist is empty — every drop will be refused"
+        )
+    serve(cfg)
+    return 0
+
+
+def cmd_list(args, cfg: Config) -> int:
+    pending = Store(cfg.state_path).list_pending()
+    if args.json:
+        print(
+            json.dumps(
+                [
+                    {"id": r.id, "label": r.label, "dest": r.dest, "mode": r.mode,
+                     "key": r.key, "expires_at": r.expires_at, "url": cfg.url_for(r.id)}
+                    for r in pending
+                ],
+                indent=2,
+            )
+        )
+        return 0
+    if not pending:
+        print("no pending drops")
+        return 0
+    for r in pending:
+        expires = _dt.datetime.fromtimestamp(r.expires_at).strftime("%H:%M")
+        print(f"{r.id[:8]}…  {r.label}  -> {r.dest}  (expires {expires})")
+    return 0
+
+
+def cmd_revoke(args, cfg: Config) -> int:
+    store = Store(cfg.state_path)
+    matches = [r.id for r in store.list_pending() if r.id.startswith(args.id)]
+    if len(matches) > 1:
+        print(f"secretdrop: '{args.id}' matches {len(matches)} drops", file=sys.stderr)
+        return 2
+    target = matches[0] if matches else args.id
+    if store.revoke(target):
+        print(f"revoked {target[:8]}…")
+        return 0
+    print(f"secretdrop: no drop matching '{args.id}'", file=sys.stderr)
+    return 1
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="secretdrop", description="Hand a secret to a machine over your tailnet, once."
+    )
+    parser.add_argument("--version", action="version", version=f"secretdrop {__version__}")
+    parser.add_argument("--config", help="path to config.json")
+    subs = parser.add_subparsers(dest="command", required=True)
+
+    link = subs.add_parser("link", help="create a one-time drop link")
+    link.add_argument("--dest", required=True, help="file the secret is written to")
+    link.add_argument("--label", required=True, help="what the human will see, e.g. 'Telegram bot token'")
+    link.add_argument("--mode", default="file", choices=["file", "env"])
+    link.add_argument("--key", help="variable name, required for --mode env")
+    link.add_argument(
+        "--ttl",
+        type=parse_duration,
+        help="link lifetime, e.g. 30m. Clamped to 1 min–24 h (default from config)",
+    )
+    link.add_argument("--json", action="store_true")
+    link.set_defaults(func=cmd_link)
+
+    srv = subs.add_parser("serve", help="run the HTTP server")
+    srv.add_argument("--verbose", action="store_true")
+    srv.set_defaults(func=cmd_serve)
+
+    listing = subs.add_parser("list", help="show pending drops")
+    listing.add_argument("--json", action="store_true")
+    listing.set_defaults(func=cmd_list)
+
+    revoke = subs.add_parser("revoke", help="kill a pending drop")
+    revoke.add_argument("id", help="full id or unique prefix")
+    revoke.set_defaults(func=cmd_revoke)
+
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    try:
+        cfg = load(args.config)
+    except ConfigError as exc:
+        print(f"secretdrop: {exc}", file=sys.stderr)
+        return 2
+    return args.func(args, cfg)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
