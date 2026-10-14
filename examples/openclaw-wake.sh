@@ -5,9 +5,10 @@
 # session awake without posting anything to the chat channel; the agent reads the
 # event, goes and reads the file, and carries on. The value is never in here.
 #
-# Point callback_command at this script. Set SECRETDROP_SESSION to the session
-# key that asked for the secret, and OPENCLAW_BIN if openclaw is not on PATH
-# (systemd --user services get a very short PATH).
+# Point callback_command at this script. SECRETDROP_SESSION names the session to
+# wake: a drop made with `link --session ...` sets it, otherwise it comes from the
+# service environment. Set OPENCLAW_BIN if openclaw is not on PATH (systemd --user
+# services get a very short PATH).
 set -eu
 
 OPENCLAW_BIN="${OPENCLAW_BIN:-openclaw}"
@@ -15,7 +16,7 @@ SESSION="${SECRETDROP_SESSION:-main}"
 KEY_NOTE=""
 [ -n "${SECRETDROP_KEY:-}" ] && KEY_NOTE=", key ${SECRETDROP_KEY}"
 
-exec "$OPENCLAW_BIN" cron create \
+exec "$OPENCLAW_BIN" cron add \
   --at "+5s" \
   --name "secretdrop-${SECRETDROP_ID}" \
   --session-key "${SESSION}" \

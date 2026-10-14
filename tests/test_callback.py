@@ -36,6 +36,45 @@ class CallbackEnvTests(unittest.TestCase):
         self.assertNotIn("SECRETDROP_VALUE", env)
         self.assertNotIn("SECRETDROP_SECRET", env)
 
+    def test_a_drop_without_a_session_sets_no_session_variable(self):
+        """Silence here is what lets the service environment's default stand."""
+        self.assertNotIn("SECRETDROP_SESSION", callback_env(make_request()))
+
+    def test_a_drop_with_a_session_carries_it(self):
+        env = callback_env(make_request(session="agent:etch:telegram:group:-100123:topic:2577"))
+        self.assertEqual(
+            env["SECRETDROP_SESSION"], "agent:etch:telegram:group:-100123:topic:2577"
+        )
+
+    def test_the_session_overrides_the_ambient_one(self):
+        import os
+
+        cfg = Config(callback_command="printf '%s' \"$SECRETDROP_SESSION\" > " + self.seen)
+        os.environ["SECRETDROP_SESSION"] = "agent:main:telegram:group:-100999"
+        try:
+            fire(cfg, make_request(session="agent:etch:telegram:group:-100123"))
+        finally:
+            del os.environ["SECRETDROP_SESSION"]
+        self.assertEqual(
+            Path(self.seen).read_text(), "agent:etch:telegram:group:-100123"
+        )
+
+    def test_without_one_the_ambient_session_survives(self):
+        import os
+
+        cfg = Config(callback_command="printf '%s' \"$SECRETDROP_SESSION\" > " + self.seen)
+        os.environ["SECRETDROP_SESSION"] = "agent:main:telegram:group:-100999"
+        try:
+            fire(cfg, make_request())
+        finally:
+            del os.environ["SECRETDROP_SESSION"]
+        self.assertEqual(
+            Path(self.seen).read_text(), "agent:main:telegram:group:-100999"
+        )
+
+    def setUp(self):
+        self.seen = str(Path(tempfile.mkdtemp()) / "session")
+
     def test_env_is_only_the_five_documented_variables(self):
         env = callback_env(make_request())
         self.assertEqual(

@@ -31,6 +31,10 @@ class DropRequest:
     key: str | None
     created_at: float
     expires_at: float
+    # Which OpenClaw session to wake. `None` leaves it to the callback's own
+    # default, so a drop made before this field existed still loads and behaves
+    # exactly as it did.
+    session: str | None = None
 
     @property
     def expired(self) -> bool:
@@ -94,7 +98,16 @@ class Store:
 
     # --- api --------------------------------------------------------------
 
-    def create(self, *, dest: str, label: str, mode: str, key: str | None, ttl_seconds: float) -> DropRequest:
+    def create(
+        self,
+        *,
+        dest: str,
+        label: str,
+        mode: str,
+        key: str | None,
+        ttl_seconds: float,
+        session: str | None = None,
+    ) -> DropRequest:
         now = time.time()
         req = DropRequest(
             id=secrets.token_urlsafe(ID_BYTES),
@@ -104,6 +117,7 @@ class Store:
             key=key,
             created_at=now,
             expires_at=now + ttl_seconds,
+            session=session,
         )
         fd = self._lock()
         try:

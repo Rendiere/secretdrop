@@ -57,6 +57,27 @@ class CliTests(unittest.TestCase):
         self.assertTrue(out.startswith("http://100.64.0.1:7391/d/"), out)
         self.assertEqual(len(Store(self.state).list_pending()), 1)
 
+    def test_link_records_a_session_when_given_one(self):
+        code, _, _ = self.run_cli(
+            "link", "--dest", str(self.creds / "bot.token"), "--label", "Icon bot token",
+            "--session", "agent:etch:telegram:group:-100123:topic:2577",
+        )
+        self.assertEqual(code, 0)
+        req = Store(self.state).list_pending()[0]
+        self.assertEqual(req.session, "agent:etch:telegram:group:-100123:topic:2577")
+
+    def test_link_without_a_session_leaves_it_unset(self):
+        self.run_cli("link", "--dest", str(self.creds / "bot.token"), "--label", "Icon bot token")
+        self.assertIsNone(Store(self.state).list_pending()[0].session)
+
+    def test_a_session_with_a_control_character_is_refused(self):
+        code, _, err = self.run_cli(
+            "link", "--dest", str(self.creds / "bot.token"), "--label", "Icon bot token",
+            "--session", "agent:main\nmalicious",
+        )
+        self.assertEqual(code, 2)
+        self.assertIn("session", err)
+
     def test_link_json_carries_the_id_and_url(self):
         code, out, _ = self.run_cli(
             "link", "--dest", str(self.creds / "bot.token"), "--label", "T", "--json"

@@ -79,7 +79,7 @@ See `examples/config.example.json`.
 
 | Key | Meaning |
 | --- | --- |
-| `bind` | `"tailscale"` resolves your tailnet IPv4 at startup. Or give a literal address. Falls back to `127.0.0.1`. `0.0.0.0` and `::` are refused unless you also set `allow_unspecified_bind`. |
+| `bind` | `"tailscale"` resolves your tailnet IPv4 at startup, waiting up to two minutes for it and then exiting non-zero rather than falling back to `127.0.0.1`. Or give a literal address. `0.0.0.0` and `::` are refused unless you also set `allow_unspecified_bind`. |
 | `port` | Default 7391. |
 | `base_url` | Override the printed URL, for a reverse proxy or a MagicDNS name. |
 | `allowlist` | Where secrets may be written. `*` matches within one path segment and never across a `/`. Empty means nothing is allowed. |
@@ -102,6 +102,13 @@ systemctl --user enable --now secretdrop
 
 Or in the foreground: `secretdrop serve --verbose`.
 
+With `bind: "tailscale"`, startup polls for the tailnet address with a backoff for
+up to two minutes, because a reboot brings secretdrop and `tailscaled` up at about
+the same moment. If the address never arrives, the process exits non-zero and
+`Restart=on-failure` tries again. It will not quietly bind `127.0.0.1`: that looks
+like a working service while every link it prints is unreachable from the phone
+meant to open it.
+
 A `systemd --user` service gets a short `PATH` that holds little more than
 `/usr/bin`. If your callback shells out to anything, set `Environment=PATH=` in the
 unit or use absolute paths.
@@ -115,6 +122,11 @@ secretdrop link --dest ~/.openclaw/credentials/bot.token --label "Telegram bot t
 # one variable in a dotenv file
 secretdrop link --dest ~/.openclaw/workspace-myagent/.secrets.env \
   --label "Telegram bot token" --mode env --key BOT_TOKEN --ttl 10m
+
+# wake a particular session instead of the service default
+secretdrop link --dest ~/.openclaw/workspace-etch/.secrets.env \
+  --label "Etch API key" --mode env --key ETCH_API_KEY \
+  --session agent:etch:telegram:group:-100123456789:topic:2577
 
 secretdrop list            # pending drops
 secretdrop revoke <id>     # kill one early
@@ -150,8 +162,9 @@ The command callback runs through `sh -c` with these in its environment:
 | `SECRETDROP_DEST` | The file that was written |
 | `SECRETDROP_MODE` | `file` or `env` |
 | `SECRETDROP_KEY` | The variable name in env mode, empty otherwise |
+| `SECRETDROP_SESSION` | Only set when the link was made with `--session`, so an unset one leaves whatever the service environment says |
 
-The webhook callback POSTs the same five fields as JSON.
+The webhook callback POSTs the first five fields as JSON.
 
 Neither carries the secret. The callback tells the agent *where* to look, and the
 agent reads the file with its own permissions.
@@ -166,7 +179,7 @@ schedules a one-shot cron job carrying a system event, which wakes the session
 without posting anything to the chat channel:
 
 ```sh
-exec "$OPENCLAW_BIN" cron create \
+exec "$OPENCLAW_BIN" cron add \
   --at "+5s" \
   --name "secretdrop-${SECRETDROP_ID}" \
   --session-key "${SESSION}" \
@@ -175,10 +188,21 @@ exec "$OPENCLAW_BIN" cron create \
   --delete-after-run
 ```
 
-Point `callback_command` at it and set `SECRETDROP_SESSION` to the session key, for
-example `agent:main:telegram:group:-100123456789`. Because of the short service
-`PATH`, either add `openclaw`'s directory to `Environment=PATH=` in the unit or set
+Point `callback_command` at it and set `SECRETDROP_SESSION` in the unit to the
+session that should normally be woken, for example
+`agent:main:telegram:group:-100123456789`. Because of the short service `PATH`,
+either add `openclaw`'s directory to `Environment=PATH=` in the unit or set
 `OPENCLAW_BIN` to its full path.
+
+A single drop can wake somewhere else instead. `link --session <key>` records the
+session on that drop, and the callback sets `SECRETDROP_SESSION` to it for that one
+run, which is useful when one agent asks for a secret that belongs to another:
+
+```bash
+secretdrop link --dest ~/.openclaw/workspace-etch/.secrets.env \
+  --label "Etch API key" --mode env --key ETCH_API_KEY \
+  --session agent:etch:telegram:group:-100123456789:topic:2577
+```
 
 ## Tests
 
