@@ -19,14 +19,18 @@ log = logging.getLogger("secretdrop")
 
 
 def callback_env(req: DropRequest) -> dict[str, str]:
-    """The five documented variables. The value is never one of them."""
-    return {
+    """The documented variables. The value is never one of them."""
+    env = {
         "SECRETDROP_ID": req.id,
         "SECRETDROP_LABEL": req.label,
         "SECRETDROP_DEST": req.dest,
         "SECRETDROP_MODE": req.mode,
         "SECRETDROP_KEY": req.key or "",
     }
+    # Set only when present, so a SECRETDROP_SESSION in the service's own environment stays the default.
+    if req.session:
+        env["SECRETDROP_SESSION"] = req.session
+    return env
 
 
 def _run_command(cfg: Config, req: DropRequest) -> None:
@@ -60,6 +64,7 @@ def _post_webhook(cfg: Config, req: DropRequest) -> None:
             "dest": req.dest,
             "mode": req.mode,
             "key": req.key,
+            "session": req.session,
         }
     ).encode()
     request = urllib.request.Request(

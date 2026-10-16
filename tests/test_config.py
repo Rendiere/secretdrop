@@ -1,3 +1,4 @@
+import os
 import json
 import tempfile
 import unittest
@@ -21,7 +22,7 @@ class BindTests(unittest.TestCase):
         self.assertEqual(check_bind("127.0.0.1", False), "127.0.0.1")
 
     def test_load_refuses_an_unspecified_bind(self):
-        tmp = Path(tempfile.mkdtemp()) / "config.json"
+        tmp = Path(os.path.realpath(tempfile.mkdtemp())) / "config.json"
         tmp.write_text(json.dumps({"bind": "0.0.0.0"}))
         with self.assertRaises(ConfigError):
             load(tmp)

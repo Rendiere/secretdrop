@@ -8,7 +8,7 @@ from secretdrop.paths import PathRejected, resolve_destination
 
 class ResolveDestinationTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp()
+        self.tmp = os.path.realpath(tempfile.mkdtemp())
         self.allowed = Path(self.tmp) / "creds"
         self.allowed.mkdir()
         self.allowlist = [str(self.allowed / "*"), str(Path(self.tmp) / "ws-*" / ".secrets.env")]

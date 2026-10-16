@@ -1,3 +1,4 @@
+import os
 import logging
 import tempfile
 import threading
@@ -16,7 +17,7 @@ SECRET = "sk-super-secret-do-not-leak-123"
 
 class ServerTestCase(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(os.path.realpath(tempfile.mkdtemp()))
         self.creds = self.tmp / "creds"
         self.creds.mkdir()
         self.callback_out = self.tmp / "callback.json"
@@ -259,3 +260,38 @@ class SecrecyTests(ServerTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OutcomeTests(ServerTestCase):
+    def test_a_successful_drop_records_landed(self):
+        req = self.make()
+        self.post(req.id)
+        self.assertEqual(self.store.outcome(req.id)["outcome"], "landed")
+
+    def test_a_failed_write_records_failed(self):
+        req = self.make()
+        os.chmod(self.creds, 0o500)
+        try:
+            self.post(req.id)
+        finally:
+            os.chmod(self.creds, 0o700)
+        self.assertEqual(self.store.outcome(req.id)["outcome"], "failed")
+
+    def test_the_outcome_record_never_holds_the_value(self):
+        req = self.make()
+        self.post(req.id)
+        outcomes = self.store.outcomes_path.read_text()
+        self.assertNotIn(SECRET, outcomes)
+
+    def test_the_callback_gets_the_links_session(self):
+        import json
+        import time
+
+        req = self.make(session="agent:main:telegram:group:-100123")
+        self.post(req.id)
+        for _ in range(100):
+            if self.callback_out.exists():
+                break
+            time.sleep(0.05)
+        captured = json.loads(self.callback_out.read_text())
+        self.assertEqual(captured["SECRETDROP_SESSION"], "agent:main:telegram:group:-100123")

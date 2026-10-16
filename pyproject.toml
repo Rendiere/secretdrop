@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "secretdrop"
-version = "0.1.0"
+version = "0.2.0"
 description = "Hand a secret to a machine over your tailnet, once."
 readme = "README.md"
 license = { text = "MIT" }
