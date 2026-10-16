@@ -42,7 +42,7 @@ The config lives at `~/.config/secretdrop/config.json`, or wherever `SECRETDROP_
 
 | Key | Meaning |
 | --- | --- |
-| `bind` | `"tailscale"` resolves your tailnet IPv4 at startup. Or give a literal address. Falls back to `127.0.0.1`. `0.0.0.0` and `::` are refused unless you also set `allow_unspecified_bind`. |
+| `bind` | `"tailscale"` resolves your tailnet IPv4 at startup, waiting up to two minutes for it and then exiting non-zero rather than falling back to `127.0.0.1`. Or give a literal address. `0.0.0.0` and `::` are refused unless you also set `allow_unspecified_bind`. |
 | `port` | Default 7391. |
 | `base_url` | Override the printed URL, for a reverse proxy or a MagicDNS name. |
 | `state_path` | Where pending links are kept. Outcomes for `secretdrop wait` go in a `.outcomes.json` file beside it. |
@@ -65,9 +65,10 @@ secretdrop link --dest ~/.openclaw/credentials/bot.token --label "Telegram bot t
 secretdrop link --dest ~/.openclaw/workspace-myagent/.secrets.env \
   --label "Telegram bot token" --mode env --key BOT_TOKEN --ttl 10m
 
-# wake a specific OpenClaw session when it lands
-secretdrop link --dest ~/.openclaw/credentials/bot.token --label "Telegram bot token" \
-  --session agent:main:telegram:group:-100123456789
+# wake a particular OpenClaw session instead of the service default
+secretdrop link --dest ~/.openclaw/workspace-etch/.secrets.env \
+  --label "Etch API key" --mode env --key ETCH_API_KEY \
+  --session agent:etch:telegram:group:-100123456789:topic:2577
 
 secretdrop wait <id> --timeout 90s   # block until it lands, fails, is revoked or expires
 secretdrop list                      # pending drops
@@ -134,7 +135,7 @@ openclaw system event --text "secretdrop: 'Telegram bot token' was written to ..
   --session-key "$SECRETDROP_SESSION" --mode now
 ```
 
-Point `callback_command` at it. The session comes from the link's `--session`, then from `SECRETDROP_SESSION` in the service environment; with neither, the script leaves out `--session-key` and the main session is woken. An agent finds its own key with its `session_status` tool (`sessionKey="current"`). Because of the short service `PATH`, either add `openclaw`'s directory to `Environment=PATH=` in the unit or set `OPENCLAW_BIN` to its full path.
+Point `callback_command` at it. One agent can ask for a secret that belongs to another, for example a drop headed for `workspace-etch/.secrets.env` that should wake the Etch session. The session comes from the link's `--session`, then from `SECRETDROP_SESSION` in the service environment; with neither, the script leaves out `--session-key` and the main session is woken. An agent finds its own key with its `session_status` tool (`sessionKey="current"`). Because of the short service `PATH`, either add `openclaw`'s directory to `Environment=PATH=` in the unit or set `OPENCLAW_BIN` to its full path.
 
 If the OpenClaw gateway restarts while the event is in flight, the event is lost. The agent skill covers this by checking the destination file when the human says they submitted.
 
@@ -149,6 +150,8 @@ systemctl --user daemon-reload
 systemctl --user enable --now secretdrop
 loginctl enable-linger "$USER"   # keep it running when you are logged out
 ```
+
+With `bind: "tailscale"`, startup polls for the tailnet address with a backoff for up to two minutes, because a reboot brings secretdrop and `tailscaled` up at about the same moment. If the address never arrives, the process exits non-zero and `Restart=on-failure` tries again. It will not quietly bind `127.0.0.1`: that looks like a working service while every link it prints is unreachable from the phone meant to open it.
 
 A `systemd --user` service gets a short `PATH` that holds little more than `/usr/bin`. If your callback shells out to anything, set `Environment=PATH=` in the unit or use absolute paths.
 

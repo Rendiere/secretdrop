@@ -41,6 +41,9 @@ class DropRequest:
     key: str | None
     created_at: float
     expires_at: float
+    # Which OpenClaw session to wake. `None` leaves it to the callback's own
+    # default, so a drop made before this field existed still loads and behaves
+    # exactly as it did.
     session: str | None = None
 
     @property

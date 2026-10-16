@@ -27,7 +27,8 @@ def callback_env(req: DropRequest) -> dict[str, str]:
         "SECRETDROP_MODE": req.mode,
         "SECRETDROP_KEY": req.key or "",
     }
-    # Set only when present, so a SECRETDROP_SESSION in the service's own environment stays the default.
+    # Only set when the link asked for a particular session, so a drop without
+    # one inherits whatever the service environment already says.
     if req.session:
         env["SECRETDROP_SESSION"] = req.session
     return env

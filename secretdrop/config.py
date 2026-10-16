@@ -9,6 +9,7 @@ from __future__ import annotations
 import ipaddress
 import json
 import os
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -20,6 +21,13 @@ DEFAULT_PORT = 7391
 DEFAULT_TTL_SECONDS = 1800
 MIN_TTL_SECONDS = 60
 MAX_TTL_SECONDS = 24 * 3600
+
+# How long `serve` waits for Tailscale to hand out a tailnet address. A boot
+# starts secretdrop and tailscaled at roughly the same moment, and the address
+# arrives a few seconds after the daemon does.
+BIND_WAIT_SECONDS = 120
+BIND_POLL_FIRST_SECONDS = 1.0
+BIND_POLL_MAX_SECONDS = 10.0
 
 
 class ConfigError(ValueError):
@@ -49,6 +57,8 @@ def check_bind(address: str, allow_unspecified: bool) -> str:
 @dataclass
 class Config:
     bind: str = "127.0.0.1"
+    # "tailscale" means `bind` may still be empty and wants resolve_bind().
+    bind_mode: str = "literal"
     port: int = DEFAULT_PORT
     base_url: str | None = None
     state_path: Path = Path("~/.local/state/secretdrop/pending.json")
@@ -59,6 +69,35 @@ class Config:
     callback_timeout_seconds: int = 20
     allow_unspecified_bind: bool = False
     _bound_port: int | None = None
+
+    def resolve_bind(self, timeout_seconds: float = 0.0) -> str:
+        """Fill in a `bind: "tailscale"` address, waiting if asked to.
+
+        There is deliberately no fallback to `127.0.0.1`. Binding localhost when
+        the operator asked for the tailnet looks like a working service while
+        every link it prints is unreachable from the phone meant to open it, and
+        that failure is silent until someone needs a secret in a hurry.
+        """
+        if self.bind_mode != "tailscale" or self.bind:
+            return self.bind
+
+        deadline = time.monotonic() + max(timeout_seconds, 0.0)
+        delay = BIND_POLL_FIRST_SECONDS
+        while True:
+            address = tailscale_ip()
+            if address:
+                self.bind = check_bind(address, self.allow_unspecified_bind)
+                return self.bind
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ConfigError(
+                    "bind is 'tailscale' but Tailscale has no IPv4 address"
+                    + (f" after {int(timeout_seconds)}s" if timeout_seconds else "")
+                    + ". Not falling back to 127.0.0.1: a localhost bind would "
+                    "print links nothing on the tailnet can open."
+                )
+            time.sleep(min(delay, remaining))
+            delay = min(delay * 2, BIND_POLL_MAX_SECONDS)
 
     def note_bound_port(self, port: int) -> None:
         """Remember the real port when the config asked for 0 (tests do)."""
@@ -117,12 +156,17 @@ def load(path: Path | str | None = None) -> Config:
         raw = json.loads(path.read_text(encoding="utf-8"))
 
     bind = raw.get("bind")
+    bind_mode = "literal"
     if bind in (None, "tailscale"):
-        bind = tailscale_ip() or "127.0.0.1"
+        # One quick look here; resolve_bind() does the waiting, so that `list`
+        # and `revoke` stay instant while `serve` can sit through a boot.
+        bind_mode = "tailscale"
+        bind = tailscale_ip() or ""
 
     allow_unspecified = bool(raw.get("allow_unspecified_bind", False))
     return Config(
-        bind=check_bind(bind, allow_unspecified),
+        bind=check_bind(bind, allow_unspecified) if bind else "",
+        bind_mode=bind_mode,
         allow_unspecified_bind=allow_unspecified,
         port=int(raw.get("port", DEFAULT_PORT)),
         base_url=raw.get("base_url"),

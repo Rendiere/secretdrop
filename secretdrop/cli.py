@@ -11,7 +11,7 @@ import sys
 import time
 
 from . import __version__
-from .config import Config, ConfigError, load
+from .config import BIND_WAIT_SECONDS, Config, ConfigError, load
 from .config import clamp_ttl
 from .paths import PathRejected, check_text, resolve_destination
 from .server import serve
@@ -46,6 +46,8 @@ def cmd_link(args, cfg: Config) -> int:
 
     try:
         check_text(args.label, "label")
+        if args.session:
+            check_text(args.session, "session")
         dest = resolve_destination(args.dest, cfg.allowlist)
     except PathRejected as exc:
         print(f"secretdrop: {exc}", file=sys.stderr)
@@ -96,10 +98,18 @@ def cmd_serve(args, cfg: Config) -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(message)s",
     )
+    log = logging.getLogger("secretdrop")
     if not cfg.allowlist:
-        logging.getLogger("secretdrop").warning(
-            "allowlist is empty — every drop will be refused"
-        )
+        log.warning("allowlist is empty — every drop will be refused")
+    if cfg.bind_mode == "tailscale" and not cfg.bind:
+        log.info("waiting up to %ss for a tailnet address", BIND_WAIT_SECONDS)
+    try:
+        cfg.resolve_bind(BIND_WAIT_SECONDS)
+    except ConfigError as exc:
+        # Exit non-zero so systemd restarts us rather than leaving a server
+        # running on an address no one can reach.
+        log.error("%s", exc)
+        return 2
     serve(cfg)
     return 0
 
@@ -111,8 +121,8 @@ def cmd_list(args, cfg: Config) -> int:
             json.dumps(
                 [
                     {"id": r.id, "label": r.label, "dest": r.dest, "mode": r.mode,
-                     "key": r.key, "expires_at": r.expires_at, "url": cfg.url_for(r.id),
-                     "session": r.session}
+                     "key": r.key, "session": r.session,
+                     "expires_at": r.expires_at, "url": cfg.url_for(r.id)}
                     for r in pending
                 ],
                 indent=2,
@@ -209,7 +219,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="link lifetime, e.g. 30m. Clamped to 1 min–24 h (default from config)",
     )
     link.add_argument(
-        "--session", help="OpenClaw session key to wake when the secret lands"
+        "--session",
+        help="OpenClaw session key to wake, e.g. agent:etch:telegram:group:-100123 "
+        "(default: whatever the callback is configured with)",
     )
     link.add_argument("--json", action="store_true")
     link.set_defaults(func=cmd_link)
@@ -240,6 +252,11 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     try:
         cfg = load(args.config)
+        # `serve` sits through a boot waiting for the tailnet; the other commands
+        # answer in a moment or not at all, so they take one look and give up.
+        # `serve` does its own waiting, once the log is set up to narrate it.
+        if args.command != "serve":
+            cfg.resolve_bind(0.0)
     except ConfigError as exc:
         print(f"secretdrop: {exc}", file=sys.stderr)
         return 2

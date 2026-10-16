@@ -155,4 +155,4 @@ secretdrop link --dest ~/.openclaw/credentials/secretdrop-test.token --label "se
 
 Send the human the `url` and ask them to open it on their phone and submit any dummy text, such as `hello`. Then wait as the skill describes for your host. When it reports `landed`, confirm the file exists with mode 0600 (`ls -l`), delete it, and tell the human setup is done.
 
-If the link does not open on the phone, check in this order: the phone is connected to Tailscale; the URL starts with this machine's `tailscale ip -4` address (if it shows `127.0.0.1`, Tailscale was not up when the server started, so restart the service); the service is running.
+If the link does not open on the phone, check in this order: the phone is connected to Tailscale; the URL starts with this machine's `tailscale ip -4` address; the service is running (it exits if the Tailscale address does not appear within two minutes of starting, and the service manager restarts it).
