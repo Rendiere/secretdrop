@@ -23,9 +23,9 @@ If `secretdrop --version` prints 0.2.0 or later and `~/.config/secretdrop/config
 secretdrop needs Python 3.10 or later and has no dependencies. Use the first installer that exists:
 
 ```sh
-uv tool install git+https://github.com/Rendiere/secretdrop
-pipx install git+https://github.com/Rendiere/secretdrop
-python3 -m pip install --user git+https://github.com/Rendiere/secretdrop
+uv tool install git+https://github.com/sudo-labs-uk/secretdrop
+pipx install git+https://github.com/sudo-labs-uk/secretdrop
+python3 -m pip install --user git+https://github.com/sudo-labs-uk/secretdrop
 ```
 
 Then run `command -v secretdrop` and keep the path it prints; the service in step 4 runs that exact file. If it prints nothing, the installer's bin directory (usually `~/.local/bin`) is not on `PATH`: use the full path.
@@ -139,7 +139,7 @@ To restart after a config change: `launchctl kickstart -k "gui/$(id -u)/com.secr
 Skip this on Claude Code and Codex; they use `secretdrop wait`.
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/Rendiere/secretdrop/main/examples/openclaw-wake.sh -o ~/.config/secretdrop/openclaw-wake.sh
+curl -fsSL https://raw.githubusercontent.com/sudo-labs-uk/secretdrop/main/examples/openclaw-wake.sh -o ~/.config/secretdrop/openclaw-wake.sh
 chmod 700 ~/.config/secretdrop/openclaw-wake.sh
 ```
 

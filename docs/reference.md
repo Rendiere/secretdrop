@@ -14,12 +14,12 @@ This page holds the detail behind the [README](../README.md): how a drop works, 
 secretdrop needs Python 3.10 or later and has no dependencies.
 
 ```bash
-uv tool install git+https://github.com/Rendiere/secretdrop
-# or: pipx install git+https://github.com/Rendiere/secretdrop
+uv tool install git+https://github.com/sudo-labs-uk/secretdrop
+# or: pipx install git+https://github.com/sudo-labs-uk/secretdrop
 # or, from a clone: pip install .   (or run in place with python3 -m secretdrop)
 ```
 
-The agent skill installs separately; see the README. On Codex you can also install it with `$skill-installer https://github.com/Rendiere/secretdrop/tree/main/skills/secretdrop`.
+The agent skill installs separately; see the README. On Codex you can also install it with `$skill-installer https://github.com/sudo-labs-uk/secretdrop/tree/main/skills/secretdrop`.
 
 ## Configuration
 

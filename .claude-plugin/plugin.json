@@ -3,8 +3,8 @@
   "version": "0.2.0",
   "description": "Get secrets from a human through a one-time link over Tailscale, so the value never enters the chat.",
   "author": { "name": "Renier Botha", "url": "https://github.com/Rendiere" },
-  "homepage": "https://github.com/Rendiere/secretdrop",
-  "repository": "https://github.com/Rendiere/secretdrop",
+  "homepage": "https://github.com/sudo-labs-uk/secretdrop",
+  "repository": "https://github.com/sudo-labs-uk/secretdrop",
   "license": "MIT",
   "keywords": ["secrets", "credentials", "tailscale", "openclaw"]
 }
