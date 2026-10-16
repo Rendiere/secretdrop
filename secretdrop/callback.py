@@ -65,6 +65,7 @@ def _post_webhook(cfg: Config, req: DropRequest) -> None:
             "dest": req.dest,
             "mode": req.mode,
             "key": req.key,
+            "session": req.session,
         }
     ).encode()
     request = urllib.request.Request(

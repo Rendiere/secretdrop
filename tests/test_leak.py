@@ -1,3 +1,4 @@
+import os
 """The leak the review found: an unread body re-parsed as the next request.
 
 `BaseHTTPRequestHandler` puts a malformed request line into its 400 page. On a
@@ -21,7 +22,7 @@ SECRET = "sk-raw-socket-canary-9f3a"
 
 class RawSocketTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(os.path.realpath(tempfile.mkdtemp()))
         self.creds = self.tmp / "creds"
         self.creds.mkdir()
         self.cfg = Config(bind="127.0.0.1", port=0, allowlist=[str(self.creds / "*")])
@@ -137,7 +138,7 @@ class RawSocketTests(unittest.TestCase):
 
 class ConcurrencyTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(os.path.realpath(tempfile.mkdtemp()))
         self.store = Store(self.tmp / "state" / "pending.json")
 
     def test_only_one_of_many_racing_consumers_wins(self):

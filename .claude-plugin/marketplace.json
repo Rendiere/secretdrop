@@ -1,0 +1,19 @@
+{
+  "name": "secretdrop",
+  "owner": { "name": "Renier Botha", "url": "https://github.com/Rendiere" },
+  "metadata": {
+    "description": "secretdrop: hand a secret to your agent without pasting it in chat."
+  },
+  "plugins": [
+    {
+      "name": "secretdrop",
+      "source": "./",
+      "description": "Get secrets from a human through a one-time link over Tailscale, so the value never enters the chat.",
+      "version": "0.2.0",
+      "author": { "name": "Renier Botha" },
+      "homepage": "https://github.com/Rendiere/secretdrop",
+      "license": "MIT",
+      "category": "security"
+    }
+  ]
+}

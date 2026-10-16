@@ -1,3 +1,4 @@
+import os
 import json
 import tempfile
 import unittest
@@ -95,7 +96,7 @@ class CallbackEnvTests(unittest.TestCase):
 
 class FireCommandTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(os.path.realpath(tempfile.mkdtemp()))
 
     def test_fire_has_no_parameter_for_the_value(self):
         import inspect
@@ -126,3 +127,51 @@ class FireCommandTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SessionCallbackTests(unittest.TestCase):
+    def test_a_session_is_exported_when_the_link_has_one(self):
+        env = callback_env(make_request(session="agent:main:telegram:group:-100123"))
+        self.assertEqual(env["SECRETDROP_SESSION"], "agent:main:telegram:group:-100123")
+
+    def test_no_session_leaves_the_variable_unset(self):
+        self.assertNotIn("SECRETDROP_SESSION", callback_env(make_request()))
+
+    def test_a_service_level_session_reaches_the_command_when_the_link_has_none(self):
+        tmp = Path(os.path.realpath(tempfile.mkdtemp()))
+        out = tmp / "out.txt"
+        cfg = Config(callback_command=f'printf %s "$SECRETDROP_SESSION" > {out}')
+        old = os.environ.get("SECRETDROP_SESSION")
+        os.environ["SECRETDROP_SESSION"] = "agent:main:main"
+        try:
+            fire(cfg, make_request())
+        finally:
+            if old is None:
+                del os.environ["SECRETDROP_SESSION"]
+            else:
+                os.environ["SECRETDROP_SESSION"] = old
+        self.assertEqual(out.read_text(), "agent:main:main")
+
+    def test_the_webhook_payload_carries_the_session(self):
+        import http.server
+        import threading
+
+        received = {}
+
+        class H(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                received.update(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+                self.send_response(204)
+                self.end_headers()
+
+            def log_message(self, *a):
+                pass
+
+        httpd = http.server.HTTPServer(("127.0.0.1", 0), H)
+        t = threading.Thread(target=httpd.handle_request, daemon=True)
+        t.start()
+        fire(Config(callback_url=f"http://127.0.0.1:{httpd.server_address[1]}/"), make_request(session="s:1"))
+        t.join(timeout=5)
+        httpd.server_close()
+        self.assertEqual(received["session"], "s:1")
+        self.assertNotIn("value", received)

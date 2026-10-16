@@ -193,11 +193,13 @@ class Handler(BaseHTTPRequestHandler):
             write_secret(dest, req.mode, req.key, value)
         except (OSError, ValueError) as exc:
             log.error("write failed for %s: %s", drop_id[:8], type(exc).__name__)
+            self.store.record_outcome(req, "failed")
             self._respond(500, pages.failed_page(), close=True)
             return
         finally:
             value = ""
 
+        self.store.record_outcome(req, "landed")
         log.info("wrote %s to %s", req.label, req.dest)
         threading.Thread(target=fire, args=(self.cfg, req), daemon=True).start()
         self._respond(200, pages.done_page(req))

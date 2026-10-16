@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" width="390" height="844" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <title>OpenClaw asks for a token with a secretdrop link in Telegram</title>
+  <defs>
+    <linearGradient id="wall" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dfe3bf"/>
+      <stop offset="0.45" stop-color="#bcd6b4"/>
+      <stop offset="1" stop-color="#d7dca6"/>
+    </linearGradient>
+    <radialGradient id="wallglow" cx="0.8" cy="0.25" r="0.6">
+      <stop offset="0" stop-color="#eef0cf" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#eef0cf" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="doodles" width="176" height="176" patternUnits="userSpaceOnUse">
+      <g fill="none" stroke="#365e41" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" opacity="0.11">
+        <path d="M22 12 l3 6 6.5 .9 -4.7 4.6 1.1 6.5 -5.9 -3.1 -5.9 3.1 1.1 -6.5 -4.7 -4.6 6.5 -.9z" transform="rotate(-12 22 22)"/>
+        <circle cx="94" cy="20" r="6"/>
+        <path d="M134 30 c0-5 7-7 9-2 c2-5 9-3 9 2 c0 6-9 11-9 11 s-9-5-9-11z" transform="rotate(14 143 33)"/>
+        <path d="M52 52 h18 v13 h-18z M52 52 l9 7 9-7" transform="rotate(-8 61 58)"/>
+        <path d="M112 92 v-16 l12-3 v16"/><circle cx="109" cy="92" r="3"/><circle cx="121" cy="89" r="3"/>
+        <path d="M156 118 a8 8 0 1 0 6 -13 a6 6 0 1 1 -6 13z"/>
+        <path d="M14 88 q6 -8 12 0 t12 0"/>
+        <path d="M70 128 l14 0 m-7 -7 l0 14" transform="rotate(20 77 128)"/>
+        <rect x="20" y="138" width="16" height="12" rx="3"/><path d="M24 138 v-3 a4 4 0 0 1 8 0 v3"/>
+        <path d="M120 150 l6 -10 6 10z"/>
+        <circle cx="160" cy="70" r="2.5"/><circle cx="50" cy="104" r="2"/><circle cx="96" cy="166" r="2.5"/>
+        <path d="M82 92 c4 -6 10 -6 14 0" />
+      </g>
+    </pattern>
+    <filter id="bshadow" x="-5%" y="-5%" width="110%" height="120%">
+      <feDropShadow dx="0" dy="0.6" stdDeviation="0.4" flood-color="#1f3d2a" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <rect width="390" height="844" fill="url(#wall)"/>
+  <rect width="390" height="844" fill="url(#wallglow)"/>
+  <rect width="390" height="844" fill="url(#doodles)"/>
+
+  <!-- status bar + navigation -->
+  <rect width="390" height="102" fill="#f7f7f7" fill-opacity="0.96"/>
+  <rect y="102" width="390" height="0.6" fill="#b2b2b2"/>
+  <text x="56" y="37" font-size="17" font-weight="600" fill="#000" text-anchor="middle" letter-spacing="-0.2">9:41</text>
+  <g fill="#000">
+    <rect x="292" y="29.5" width="3.2" height="4.5" rx="0.8"/>
+    <rect x="297" y="27.5" width="3.2" height="6.5" rx="0.8"/>
+    <rect x="302" y="25" width="3.2" height="9" rx="0.8"/>
+    <rect x="307" y="22.5" width="3.2" height="11.5" rx="0.8"/>
+    <path d="M323.5 24.6a10.6 10.6 0 0 1 14.6 0l-1.5 1.6a8.4 8.4 0 0 0-11.6 0z"/>
+    <path d="M326.4 27.6a6.4 6.4 0 0 1 8.8 0l-1.5 1.6a4.2 4.2 0 0 0-5.8 0z"/>
+    <path d="M329.3 30.6a2.2 2.2 0 0 1 3 0l-1.5 1.7z"/>
+    <rect x="345" y="22.5" width="24" height="12" rx="3.6" fill="none" stroke="#000" stroke-opacity="0.38" stroke-width="1"/>
+    <rect x="347" y="24.5" width="20" height="8" rx="2"/>
+    <path d="M370.6 26.6v3.8a2 2 0 0 0 0-3.8z" fill-opacity="0.4"/>
+  </g>
+  <path d="M18 66 l-7 9.5 7 9.5" fill="none" stroke="#037ee5" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="26" y="81.5" font-size="17" fill="#037ee5">Chats</text>
+  <text x="195" y="74" font-size="17" font-weight="600" fill="#000" text-anchor="middle">OpenClaw</text>
+  <text x="195" y="92" font-size="13" fill="#8e8e93" text-anchor="middle">bot</text>
+  <defs>
+    <linearGradient id="ava" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff885e"/><stop offset="1" stop-color="#ff516a"/>
+    </linearGradient>
+  </defs>
+  <circle cx="352" cy="77" r="18.5" fill="url(#ava)"/>
+  <text x="352" y="83" font-size="16" font-weight="600" fill="#fff" text-anchor="middle">OC</text>
+
+  <!-- date -->
+  <rect x="166" y="378" width="58" height="22" rx="11" fill="#5a7a5a" fill-opacity="0.32"/>
+  <text x="195" y="393.5" font-size="14" font-weight="500" fill="#fff" text-anchor="middle">Today</text>
+
+  <!-- messages -->
+    <path d="M120,418 H362 A18,18 0 0 1 380,436 V462 C380,471 383,474.5 386.5,475.7 C381.5,476.7 376,475.4 372,473.4 C369,475.4 366,476 362,476 H120 A18,18 0 0 1 102,458 V436 A18,18 0 0 1 120,418 Z" fill="#e1fec6" filter="url(#bshadow)"/>
+  <text x="114" y="441.5" font-size="17" fill="#000">Set up the Telegram alerts for the</text>
+  <text x="114" y="463.5" font-size="17" fill="#000">home server</text>
+  <g fill="none" stroke="#4fae4e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M355,464.3 l3.1,3.3 l6.2,-7.8"/><path d="M360.6,466.9 l1.3,1.4 l6.2,-7.8"/></g>
+  <text x="352" y="468" font-size="12" fill="#4fae4e" text-anchor="end">11:06</text>
+  <path d="M289,486 H28 A18,18 0 0 0 10,504 V596 C10,605 7,608.5 3.5,609.7 C8.5,610.7 14,609.4 18,607.4 C21,609.4 24,610 28,610 H289 A18,18 0 0 0 307,592 V504 A18,18 0 0 0 289,486 Z" fill="#ffffff" filter="url(#bshadow)"/>
+  <text x="22" y="509.5" font-size="17" fill="#000">I need your Telegram bot token for</text>
+  <text x="22" y="531.5" font-size="17" fill="#000">that. Don’t paste it here — open this</text>
+  <text x="22" y="553.5" font-size="17" fill="#000">one-time link and drop it in:</text>
+  <text x="22" y="575.5" font-size="17" fill="#1c7ed6">http://100.101.7.42:7391/d/Xq3vR9…</text>
+  <text x="22" y="597.5" font-size="14" fill="#7d868f">Expires in 30 min · works once</text>
+  <text x="295" y="602" font-size="12" fill="#a0acb6" text-anchor="end">11:07</text>
+  <path d="M277,620 H362 A18,18 0 0 1 380,638 V642 C380,651 383,654.5 386.5,655.7 C381.5,656.7 376,655.4 372,653.4 C369,655.4 366,656 362,656 H277 A18,18 0 0 1 259,638 V638 A18,18 0 0 1 277,620 Z" fill="#e1fec6" filter="url(#bshadow)"/>
+  <text x="271" y="643.5" font-size="17" fill="#000">Done</text>
+  <g fill="none" stroke="#4fae4e" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M355,644.3 l3.1,3.3 l6.2,-7.8"/><path d="M360.6,646.9 l1.3,1.4 l6.2,-7.8"/></g>
+  <text x="352" y="648" font-size="12" fill="#4fae4e" text-anchor="end">11:08</text>
+  <path d="M256,666 H28 A18,18 0 0 0 10,684 V732 C10,741 7,744.5 3.5,745.7 C8.5,746.7 14,745.4 18,743.4 C21,745.4 24,746 28,746 H256 A18,18 0 0 0 274,728 V684 A18,18 0 0 0 256,666 Z" fill="#ffffff" filter="url(#bshadow)"/>
+  <text x="22" y="689.5" font-size="17" fill="#000">Got it — saved to ~/.openclaw/</text>
+  <text x="22" y="711.5" font-size="17" fill="#000">credentials/telegram-bot.token.</text>
+  <text x="22" y="733.5" font-size="17" fill="#000">Alerts are live.</text>
+  <text x="262" y="738" font-size="12" fill="#a0acb6" text-anchor="end">11:08</text>
+
+  <!-- input bar -->
+  <rect y="758" width="390" height="86" fill="#f7f7f7" fill-opacity="0.97"/>
+  <rect y="758" width="390" height="0.6" fill="#b2b2b2"/>
+  <path d="M27.5 784.5l-9.2 9.2a5 5 0 0 0 7.1 7.1l10.6-10.6a3.3 3.3 0 0 0-4.7-4.7l-10.3 10.3a1.6 1.6 0 0 0 2.3 2.3l8.6-8.6" fill="none" stroke="#858e99" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" transform="translate(-4 -2)"/>
+  <rect x="48.5" y="772.5" width="282" height="34" rx="17" fill="#fff" stroke="#dcdcdc"/>
+  <text x="64" y="795" font-size="17" fill="#a3a3a8">Message</text>
+  <g fill="none" stroke="#858e99" stroke-width="1.6" stroke-linecap="round">
+    <circle cx="310" cy="789.5" r="9"/>
+    <path d="M306.2 792 q3.8 3.6 7.6 0"/>
+  </g>
+  <circle cx="306.8" cy="787.2" r="1.1" fill="#858e99"/><circle cx="313.2" cy="787.2" r="1.1" fill="#858e99"/>
+  <g fill="none" stroke="#858e99" stroke-width="1.7" stroke-linecap="round">
+    <rect x="353" y="777" width="9" height="15" rx="4.5"/>
+    <path d="M348.5 787.5a9 9 0 0 0 18 0M357.5 796.5v4.5"/>
+  </g>
+  <rect x="128" y="830" width="134" height="5" rx="2.5" fill="#000"/>
+</svg>

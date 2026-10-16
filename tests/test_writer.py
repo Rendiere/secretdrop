@@ -8,7 +8,7 @@ from secretdrop.writer import write_secret
 
 class WriteFileModeTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(os.path.realpath(tempfile.mkdtemp()))
 
     def test_writes_the_whole_value(self):
         dest = self.tmp / "bot.token"
@@ -47,7 +47,7 @@ class WriteFileModeTests(unittest.TestCase):
 
 class WriteEnvModeTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(os.path.realpath(tempfile.mkdtemp()))
         self.dest = self.tmp / ".secrets.env"
 
     def test_appends_to_a_missing_file(self):

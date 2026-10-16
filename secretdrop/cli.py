@@ -8,6 +8,7 @@ import json
 import logging
 import re
 import sys
+import time
 
 from . import __version__
 from .config import BIND_WAIT_SECONDS, Config, ConfigError, load
@@ -19,6 +20,10 @@ from .writer import validate_mode
 
 DURATION = re.compile(r"^(\d+)\s*([smhd])$")
 DURATION_UNITS = {"s": 1, "m": 60, "h": 3600, "d": 86400}
+# The key reaches a shell callback, so only the characters OpenClaw session keys use.
+SESSION = re.compile(r"^[A-Za-z0-9:._@+-]{1,200}$")
+WAIT_GRACE_SECONDS = 10
+FULL_ID_LENGTH = 32
 
 
 def parse_duration(text: str) -> int:
@@ -48,6 +53,13 @@ def cmd_link(args, cfg: Config) -> int:
         print(f"secretdrop: {exc}", file=sys.stderr)
         return 2
 
+    if args.session is not None and not SESSION.match(args.session):
+        print(
+            "secretdrop: session must be 1-200 characters of letters, digits and :._@+-",
+            file=sys.stderr,
+        )
+        return 2
+
     try:
         ttl = clamp_ttl(args.ttl if args.ttl is not None else cfg.default_ttl_seconds)
     except ConfigError as exc:
@@ -64,7 +76,18 @@ def cmd_link(args, cfg: Config) -> int:
     url = cfg.url_for(req.id)
 
     if args.json:
-        print(json.dumps({"id": req.id, "url": url, "dest": str(dest), "expires_at": req.expires_at}))
+        print(
+            json.dumps(
+                {
+                    "id": req.id,
+                    "url": url,
+                    "dest": str(dest),
+                    "created_at": req.created_at,
+                    "expires_at": req.expires_at,
+                    "session": req.session,
+                }
+            )
+        )
     else:
         print(url)
     return 0
@@ -129,6 +152,54 @@ def cmd_revoke(args, cfg: Config) -> int:
     return 1
 
 
+def _wait_result(args, drop_id: str, outcome: str, label: str, dest: str) -> int:
+    if args.json:
+        print(json.dumps({"id": drop_id, "outcome": outcome, "label": label, "dest": dest}))
+    else:
+        print(f"{outcome}: {label} -> {dest}")
+    if outcome == "landed":
+        return 0
+    return 3 if outcome == "timeout" else 1
+
+
+def cmd_wait(args, cfg: Config) -> int:
+    store = Store(cfg.state_path)
+    matches = [i for i in store.known_ids() if i.startswith(args.id)]
+    if len(matches) > 1:
+        print(f"secretdrop: '{args.id}' matches {len(matches)} drops", file=sys.stderr)
+        return 2
+    if matches:
+        drop_id = matches[0]
+    elif len(args.id) == FULL_ID_LENGTH:
+        drop_id = args.id
+    else:
+        print(f"secretdrop: no drop matching '{args.id}'", file=sys.stderr)
+        return 1
+
+    deadline = time.time() + args.timeout if args.timeout else None
+    label = dest = ""
+    gone_since = None
+    while True:
+        record = store.outcome(drop_id)
+        if record:
+            return _wait_result(args, drop_id, record["outcome"], record["label"], record["dest"])
+
+        req = store.peek(drop_id)
+        if req is not None:
+            label, dest = req.label, req.dest
+            if req.expired:
+                return _wait_result(args, drop_id, "expired", label, dest)
+        else:
+            # Consumed but not yet recorded: the write is in flight.
+            gone_since = gone_since or time.time()
+            if time.time() - gone_since > WAIT_GRACE_SECONDS:
+                return _wait_result(args, drop_id, "unknown", label, dest)
+
+        if deadline is not None and time.time() >= deadline:
+            return _wait_result(args, drop_id, "timeout", label, dest)
+        time.sleep(args.poll)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="secretdrop", description="Hand a secret to a machine over your tailnet, once."
@@ -166,6 +237,13 @@ def build_parser() -> argparse.ArgumentParser:
     revoke = subs.add_parser("revoke", help="kill a pending drop")
     revoke.add_argument("id", help="full id or unique prefix")
     revoke.set_defaults(func=cmd_revoke)
+
+    wait = subs.add_parser("wait", help="block until a drop lands, fails, is revoked or expires")
+    wait.add_argument("id", help="full id or unique prefix")
+    wait.add_argument("--timeout", type=parse_duration, help="give up after this long, e.g. 90s")
+    wait.add_argument("--json", action="store_true")
+    wait.add_argument("--poll", type=float, default=1.0, help=argparse.SUPPRESS)
+    wait.set_defaults(func=cmd_wait)
 
     return parser
 

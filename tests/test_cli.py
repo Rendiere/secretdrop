@@ -1,3 +1,4 @@
+import os
 import io
 import json
 import tempfile
@@ -26,7 +27,7 @@ class DurationTests(unittest.TestCase):
 
 class CliTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(os.path.realpath(tempfile.mkdtemp()))
         self.creds = self.tmp / "creds"
         self.creds.mkdir()
         self.state = self.tmp / "state" / "pending.json"
@@ -183,3 +184,120 @@ class ValidationTests(CliTests):
         )
         self.assertEqual(code, 2)
         self.assertIn("positive", err)
+
+
+class SessionCliTests(CliTests):
+    def test_link_stores_a_session_and_json_shows_it(self):
+        code, out, _ = self.run_cli(
+            "link", "--dest", str(self.creds / "a.token"), "--label", "T",
+            "--session", "agent:main:telegram:group:-100123", "--json",
+        )
+        self.assertEqual(code, 0)
+        payload = json.loads(out)
+        self.assertEqual(payload["session"], "agent:main:telegram:group:-100123")
+        self.assertIn("created_at", payload)
+        _, listed, _ = self.run_cli("list", "--json")
+        self.assertEqual(json.loads(listed)[0]["session"], "agent:main:telegram:group:-100123")
+
+    def test_link_refuses_an_unsafe_session(self):
+        for bad in ["has space", "quote'", "$(touch x)", "a\nb", "x" * 201, ""]:
+            with self.subTest(bad=bad):
+                code, _, err = self.run_cli(
+                    "link", "--dest", str(self.creds / "a.token"), "--label", "T", "--session", bad
+                )
+                self.assertEqual(code, 2)
+                self.assertIn("session", err)
+        self.assertEqual(Store(self.state).list_pending(), [])
+
+
+class WaitTests(CliTests):
+    def link(self, ttl="10m"):
+        _, out, _ = self.run_cli(
+            "link", "--dest", str(self.creds / "a.token"), "--label", "Alpha", "--ttl", ttl, "--json"
+        )
+        return json.loads(out)["id"]
+
+    def wait(self, *extra):
+        code, out, err = self.run_cli("wait", *extra, "--json", "--poll", "0.05")
+        return code, (json.loads(out) if out else None), err
+
+    def test_landed(self):
+        drop_id = self.link()
+        store = Store(self.state)
+        req = store.consume(drop_id)
+        store.record_outcome(req, "landed")
+        code, out, _ = self.wait(drop_id[:8])
+        self.assertEqual(code, 0)
+        self.assertEqual(out["outcome"], "landed")
+        self.assertEqual(out["dest"], str(self.creds / "a.token"))
+
+    def test_landed_while_waiting(self):
+        import threading
+        import time
+
+        drop_id = self.link()
+
+        def land():
+            time.sleep(0.3)
+            store = Store(self.state)
+            store.record_outcome(store.consume(drop_id), "landed")
+
+        threading.Thread(target=land).start()
+        code, out, _ = self.wait(drop_id, "--timeout", "10s")
+        self.assertEqual(code, 0)
+        self.assertEqual(out["outcome"], "landed")
+
+    def test_a_consumed_link_without_an_outcome_yet_is_given_a_grace_period(self):
+        import threading
+        import time
+
+        drop_id = self.link()
+        store = Store(self.state)
+        req = store.consume(drop_id)
+
+        def land():
+            time.sleep(0.3)
+            Store(self.state).record_outcome(req, "landed")
+
+        threading.Thread(target=land).start()
+        code, out, _ = self.wait(drop_id, "--timeout", "10s")
+        self.assertEqual(out["outcome"], "landed")
+
+    def test_failed(self):
+        drop_id = self.link()
+        store = Store(self.state)
+        store.record_outcome(store.consume(drop_id), "failed")
+        code, out, _ = self.wait(drop_id)
+        self.assertEqual(code, 1)
+        self.assertEqual(out["outcome"], "failed")
+
+    def test_revoked(self):
+        drop_id = self.link()
+        self.run_cli("revoke", drop_id)
+        code, out, _ = self.wait(drop_id)
+        self.assertEqual(code, 1)
+        self.assertEqual(out["outcome"], "revoked")
+
+    def test_expired_while_still_in_the_store(self):
+        drop_id = self.link()
+        store = Store(self.state)
+        data = json.loads(store.path.read_text())
+        data[drop_id]["expires_at"] = 0
+        store.path.write_text(json.dumps(data))
+        code, out, _ = self.wait(drop_id)
+        self.assertEqual(code, 1)
+        self.assertEqual(out["outcome"], "expired")
+
+    def test_timeout(self):
+        drop_id = self.link()
+        code, out, _ = self.wait(drop_id, "--timeout", "1s")
+        self.assertEqual(code, 3)
+        self.assertEqual(out["outcome"], "timeout")
+
+    def test_unknown_and_ambiguous(self):
+        code, _, err = self.run_cli("wait", "nope")
+        self.assertEqual(code, 1)
+        self.link()
+        self.link()
+        code, _, err = self.run_cli("wait", "")
+        self.assertEqual(code, 2)
