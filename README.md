@@ -14,16 +14,16 @@ The link works once, expires in 30 minutes, and can only write to folders you ap
 Install the skill for every agent you use, in one line:
 
 ```sh
-npx skills add Rendiere/secretdrop
+npx skills add sudo-labs-uk/secretdrop
 ```
 
 Or per host:
 
 | Host | Command |
 | --- | --- |
-| Claude Code | `/plugin install secretdrop --marketplace Rendiere/secretdrop` |
+| Claude Code | `/plugin install secretdrop --marketplace sudo-labs-uk/secretdrop` |
 | OpenClaw | `openclaw skills install @rendiere/secretdrop` |
-| Codex | `npx skills add Rendiere/secretdrop -a codex -g` |
+| Codex | `npx skills add sudo-labs-uk/secretdrop -a codex -g` |
 
 ## Set it up
 

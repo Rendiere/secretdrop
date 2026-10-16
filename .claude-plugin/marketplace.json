@@ -1,6 +1,6 @@
 {
   "name": "secretdrop",
-  "owner": { "name": "Renier Botha", "url": "https://github.com/Rendiere" },
+  "owner": { "name": "Sudo Labs", "url": "https://github.com/sudo-labs-uk" },
   "metadata": {
     "description": "secretdrop: hand a secret to your agent without pasting it in chat."
   },
@@ -11,7 +11,7 @@
       "description": "Get secrets from a human through a one-time link over Tailscale, so the value never enters the chat.",
       "version": "0.2.0",
       "author": { "name": "Renier Botha" },
-      "homepage": "https://github.com/Rendiere/secretdrop",
+      "homepage": "https://github.com/sudo-labs-uk/secretdrop",
       "license": "MIT",
       "category": "security"
     }
